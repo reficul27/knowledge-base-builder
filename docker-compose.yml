@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # MongoDB Datenbank
+  mongodb:
+    image: mongo:7.0
+    container_name: kb-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: knowledge_base
+    volumes:
+      - mongodb_data:/data/db
+
+  # Neo4j Graph Datenbank
+  neo4j:
+    image: neo4j:5-community
+    container_name: kb-neo4j
+    restart: always
+    ports:
+      - "7474:7474"  # Browser
+      - "7687:7687"  # Bolt
+    environment:
+      NEO4J_AUTH: neo4j/password123
+      NEO4J_PLUGINS: '["apoc"]'
+    volumes:
+      - neo4j_data:/data
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: kb-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  # Backend API (wird später hinzugefügt)
+  # backend:
+  #   build: ./backend
+  #   container_name: kb-backend
+  #   restart: always
+  #   ports:
+  #     - "3001:3001"
+  #   environment:
+  #     NODE_ENV: development
+  #     MONGODB_URI: mongodb://admin:password123@mongodb:27017/knowledge_base?authSource=admin
+  #     NEO4J_URI: bolt://neo4j:7687
+  #     NEO4J_USER: neo4j
+  #     NEO4J_PASSWORD: password123
+  #     REDIS_URL: redis://redis:6379
+  #   depends_on:
+  #     - mongodb
+  #     - neo4j
+  #     - redis
+
+volumes:
+  mongodb_data:
+  neo4j_data:
+  redis_data:
