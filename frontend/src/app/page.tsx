@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Sparkles, BookOpen, Target, Trophy, ArrowRight, Play, Star, Clock, Zap } from 'lucide-react'
+import { Search, Sparkles, BookOpen, Target, Trophy, ArrowRight, Play, Star, Clock, Zap, Brain } from 'lucide-react'
 import Link from 'next/link'
 
 interface QuickTopic {
@@ -213,6 +213,13 @@ export default function Dashboard() {
                 <Play className="h-4 w-4" />
                 <span>Continue Learning</span>
               </Link>
+              <Link
+                href="/my-brain"
+                className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-6 py-3 text-white hover:bg-white/20 transition-all"
+              >
+                <Brain className="h-4 w-4" />
+                <span>My Brain Archive</span>
+              </Link>
               <button className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-6 py-3 text-white hover:bg-white/20 transition-all">
                 <Target className="h-4 w-4" />
                 <span>Set Goals</span>
@@ -301,6 +308,52 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Quick Access Cards */}
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+              <Brain className="h-6 w-6 mr-2 text-purple-600" />
+              Quick Access
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Learning Board Card */}
+              <Link
+                href="/mindmap"
+                className="bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl p-6 text-white hover:shadow-xl transition-all duration-300 group"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <Play className="w-8 h-8" />
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Learning Board</h3>
+                <p className="text-purple-100">Interactive game-like learning experience with achievements and progress tracking</p>
+              </Link>
+
+              {/* My Brain Archive Card */}
+              <Link
+                href="/my-brain"
+                className="bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl p-6 text-white hover:shadow-xl transition-all duration-300 group"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <Brain className="w-8 h-8" />
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">My Brain Archive</h3>
+                <p className="text-indigo-100">Neural network visualization of your complete knowledge base and learning connections</p>
+              </Link>
+
+              {/* Analytics Card */}
+              <button className="bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl p-6 text-white hover:shadow-xl transition-all duration-300 group">
+                <div className="flex items-center justify-between mb-4">
+                  <Trophy className="w-8 h-8" />
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Learning Analytics</h3>
+                <p className="text-emerald-100">Detailed insights into your learning patterns, progress, and achievements</p>
+              </button>
+            </div>
+          </div>
+
           {/* Popular Learning Paths */}
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
@@ -362,14 +415,24 @@ export default function Dashboard() {
               <p className="text-purple-100 mb-6 max-w-2xl mx-auto">
                 Join thousands of learners who are building their skills with our interactive learning platform.
               </p>
-              <Link
-                href="/mindmap"
-                className="inline-flex items-center space-x-2 bg-white text-purple-600 px-8 py-4 rounded-2xl font-semibold hover:bg-gray-50 transition-all"
-              >
-                <Play className="h-5 w-5" />
-                <span>Enter Learning Board</span>
-                <ArrowRight className="h-5 w-5" />
-              </Link>
+              <div className="flex flex-wrap justify-center gap-4">
+                <Link
+                  href="/mindmap"
+                  className="inline-flex items-center space-x-2 bg-white text-purple-600 px-8 py-4 rounded-2xl font-semibold hover:bg-gray-50 transition-all"
+                >
+                  <Play className="h-5 w-5" />
+                  <span>Start Learning</span>
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+                <Link
+                  href="/my-brain"
+                  className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md border border-white/20 text-white px-8 py-4 rounded-2xl font-semibold hover:bg-white/20 transition-all"
+                >
+                  <Brain className="h-5 w-5" />
+                  <span>Explore My Brain</span>
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+              </div>
             </div>
           </div>
         </div>
