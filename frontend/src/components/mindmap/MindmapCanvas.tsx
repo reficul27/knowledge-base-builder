@@ -29,7 +29,7 @@ interface MindmapData {
 }
 
 interface MindmapCanvasProps {
-  data: MindmapData
+  data?: MindmapData
   width?: number
   height?: number
   onNodeClick?: (node: Node) => void
@@ -37,8 +37,25 @@ interface MindmapCanvasProps {
   selectedNodeId?: string
 }
 
-export function MindmapCanvas({ 
-  data, 
+// Demo data for initial display
+const defaultData: MindmapData = {
+  nodes: [
+    { id: '1', name: 'JavaScript', category: 'programming', difficulty: 'beginner', completed: true },
+    { id: '2', name: 'React', category: 'frontend', difficulty: 'intermediate', completed: false },
+    { id: '3', name: 'Node.js', category: 'backend', difficulty: 'intermediate', completed: false },
+    { id: '4', name: 'TypeScript', category: 'programming', difficulty: 'advanced', completed: false },
+    { id: '5', name: 'Express', category: 'backend', difficulty: 'beginner', completed: false }
+  ],
+  links: [
+    { source: '1', target: '2', type: 'prerequisite', strength: 0.8 },
+    { source: '1', target: '3', type: 'prerequisite', strength: 0.7 },
+    { source: '1', target: '4', type: 'related', strength: 0.6 },
+    { source: '3', target: '5', type: 'prerequisite', strength: 0.9 }
+  ]
+}
+
+export default function MindmapCanvas({ 
+  data = defaultData, 
   width = 800, 
   height = 600, 
   onNodeClick,
@@ -326,7 +343,7 @@ export function MindmapCanvas({
   }, [selectedNodeId])
 
   return (
-    <div className="relative w-full h-full border border-gray-200 rounded-lg bg-gray-50">
+    <div className="relative w-full h-full border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-800">
       <svg
         ref={svgRef}
         className="w-full h-full"
@@ -334,29 +351,29 @@ export function MindmapCanvas({
       />
       
       {/* Legend */}
-      <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-4 max-w-xs">
-        <h4 className="font-medium text-gray-900 mb-3">Legend</h4>
+      <div className="absolute top-4 left-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 max-w-xs">
+        <h4 className="font-medium text-gray-900 dark:text-white mb-3">Legend</h4>
         <div className="space-y-2 text-sm">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 rounded-full bg-green-500"></div>
-            <span>Completed</span>
+            <span className="text-gray-700 dark:text-gray-300">Completed</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 rounded-full bg-blue-500"></div>
-            <span>Programming</span>
+            <span className="text-gray-700 dark:text-gray-300">Programming</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 rounded-full bg-emerald-500"></div>
-            <span>Frontend</span>
+            <span className="text-gray-700 dark:text-gray-300">Frontend</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 rounded-full bg-amber-500"></div>
-            <span>Backend</span>
+            <span className="text-gray-700 dark:text-gray-300">Backend</span>
           </div>
         </div>
         
-        <div className="mt-4 pt-3 border-t border-gray-200">
-          <div className="text-xs text-gray-500 space-y-1">
+        <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
+          <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
             <div>🔴 → Prerequisites</div>
             <div>⚫ → Related Topics</div>
             <div>🟣 → Advanced Topics</div>
@@ -365,17 +382,17 @@ export function MindmapCanvas({
       </div>
 
       {/* Controls */}
-      <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-2">
+      <div className="absolute top-4 right-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2">
         <div className="flex flex-col space-y-2">
           <button 
             onClick={resetView}
-            className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
           >
             Reset View
           </button>
           <button 
             onClick={fitAll}
-            className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+            className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
           >
             Fit All
           </button>
