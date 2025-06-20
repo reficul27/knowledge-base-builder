@@ -30,9 +30,11 @@ interface NeuralConnection {
 interface HoverFiring {
   id: string;
   connectionId: string;
+  fromNodeId: string;
+  toNodeId: string;
   progress: number; // 0-1 along the connection
+  startTime: number;
   intensity: number;
-  targetReached: boolean;
 }
 
 const KnowledgeMapMindmap: React.FC = () => {
@@ -256,6 +258,26 @@ const KnowledgeMapMindmap: React.FC = () => {
     return `M ${from.position.x} ${from.position.y} Q ${controlX} ${controlY} ${to.position.x} ${to.position.y}`;
   };
 
+  // Get point along curved path for elegant firing animation
+  const getPointAlongPath = (pathString: string, progress: number): { x: number; y: number } => {
+    if (!svgRef.current) return { x: 0, y: 0 };
+    
+    // Create temporary path element to calculate point
+    const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    tempPath.setAttribute('d', pathString);
+    svgRef.current.appendChild(tempPath);
+    
+    try {
+      const pathLength = tempPath.getTotalLength();
+      const point = tempPath.getPointAtLength(pathLength * progress);
+      svgRef.current.removeChild(tempPath);
+      return { x: point.x, y: point.y };
+    } catch (e) {
+      svgRef.current.removeChild(tempPath);
+      return { x: 0, y: 0 };
+    }
+  };
+
   // Get node by ID
   const getNode = (id: string) => nodes.find(n => n.id === id);
 
@@ -273,21 +295,23 @@ const KnowledgeMapMindmap: React.FC = () => {
     return icons[nodeId as keyof typeof icons] || BookOpen;
   };
 
-  // Handle node hover
+  // Handle elegant node hover with neural firing
   const handleNodeHover = (node: NeuralNode) => {
     setHoveredNode(node.id);
     setReachedNodes(new Set());
     
-    // Find all connections pointing TO this node
+    // Find all connections pointing TO this node (incoming connections)
     const incomingConnections = connections.filter(conn => conn.to === node.id);
     
-    // Start firing animations from connected nodes
-    const newFirings: HoverFiring[] = incomingConnections.map(conn => ({
-      id: `firing-${conn.id}-${Date.now()}`,
+    // Create elegant firing animations from connected nodes TO the hovered node
+    const newFirings: HoverFiring[] = incomingConnections.map((conn, index) => ({
+      id: `firing-${conn.id}-${Date.now()}-${index}`,
       connectionId: conn.id,
+      fromNodeId: conn.from,
+      toNodeId: conn.to,
       progress: 0,
-      intensity: conn.activity,
-      targetReached: false
+      startTime: Date.now() + (index * 200), // Staggered start for elegance
+      intensity: conn.activity
     }));
     
     setHoverFirings(newFirings);
@@ -305,44 +329,58 @@ const KnowledgeMapMindmap: React.FC = () => {
     setSelectedNode(node.id);
   };
 
-  // Animate hover firings - slower and more elegant
+  // Elegant slower neural firing animation
   useEffect(() => {
     if (!mounted || hoverFirings.length === 0) return;
 
-    const animateHoverFirings = () => {
+    const animateElegantFirings = () => {
+      const now = Date.now();
+      
       setHoverFirings(prev => {
         const updated = prev.map(firing => {
-          const newProgress = firing.progress + 0.008; // Much slower: 0.008 instead of 0.02
-          
-          // Check if firing reached target (95% to account for curve endpoints)
-          if (newProgress >= 0.95 && !firing.targetReached) {
-            const connection = connections.find(c => c.id === firing.connectionId);
-            if (connection && hoveredNode) {
-              setReachedNodes(prev => new Set([...prev, connection.to]));
-            }
-            return { ...firing, progress: newProgress, targetReached: true };
+          // Check if firing should start (staggered timing)
+          if (now < firing.startTime) {
+            return firing;
           }
           
-          return { ...firing, progress: newProgress };
+          const elapsed = now - firing.startTime;
+          const duration = 2000; // 2 seconds for very elegant, slow animation
+          let progress = Math.min(elapsed / duration, 1);
+          
+          // Use ease-out cubic for very smooth deceleration
+          progress = 1 - Math.pow(1 - progress, 3);
+          
+          // Check if firing reached target (95% to account for curve endpoints)
+          if (progress >= 0.95 && !reachedNodes.has(firing.toNodeId)) {
+            setReachedNodes(prev => new Set([...prev, firing.toNodeId]));
+          }
+          
+          return {
+            ...firing,
+            progress: progress
+          };
         });
 
-        // Remove completed firings after a short delay
-        return updated.filter(firing => firing.progress < 1.1);
+        // Keep firings until they complete and a bit longer for smooth transition
+        return updated.filter(firing => {
+          const elapsed = now - firing.startTime;
+          return elapsed < 2500; // Keep for 2.5 seconds total
+        });
       });
 
-      if (hoveredNode && hoverFirings.length > 0) {
-        animationRef.current = requestAnimationFrame(animateHoverFirings);
+      if (hoveredNode && hoverFirings.some(f => now >= f.startTime)) {
+        animationRef.current = requestAnimationFrame(animateElegantFirings);
       }
     };
 
-    animationRef.current = requestAnimationFrame(animateHoverFirings);
+    animationRef.current = requestAnimationFrame(animateElegantFirings);
 
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [mounted, hoverFirings.length, hoveredNode]);
+  }, [mounted, hoveredNode, hoverFirings.length]);
 
   // Calculate total brain stats
   const totalXP = nodes.reduce((sum, node) => sum + node.xp, 0);
@@ -416,7 +454,15 @@ const KnowledgeMapMindmap: React.FC = () => {
             </filter>
 
             <filter id="brightGlow">
-              <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+              <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+              <feMerge> 
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+
+            <filter id="firingGlow">
+              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
               <feMerge> 
                 <feMergeNode in="coloredBlur"/>
                 <feMergeNode in="SourceGraphic"/>
@@ -431,44 +477,48 @@ const KnowledgeMapMindmap: React.FC = () => {
             if (!fromNode || !toNode) return null;
 
             const isActive = hoveredNode === connection.to;
+            const pathString = getConnectionPath(fromNode, toNode);
 
             return (
               <g key={connection.id}>
                 {/* Main synaptic path */}
                 <path
-                  d={getConnectionPath(fromNode, toNode)}
-                  stroke={isActive ? `rgba(139, 92, 246, 0.8)` : `rgba(139, 92, 246, ${0.3 + connection.activity * 0.2})`}
-                  strokeWidth={isActive ? (3 + connection.strength * 4) : (2 + connection.strength * 3)}
+                  d={pathString}
+                  stroke={isActive ? 
+                    `rgba(139, 92, 246, 0.9)` : 
+                    `rgba(139, 92, 246, ${0.25 + connection.activity * 0.25})`
+                  }
+                  strokeWidth={isActive ? 
+                    4 + connection.strength * 4 : 
+                    2 + connection.strength * 2
+                  }
                   fill="none"
                   filter={isActive ? "url(#brightGlow)" : "url(#neuralGlow)"}
-                  className="transition-all duration-500"
+                  className="transition-all duration-700"
                 />
                 
-                {/* Hover-based neural firing animation */}
+                {/* Elegant hover-based neural firing */}
                 {hoverFirings
-                  .filter(firing => firing.connectionId === connection.id)
+                  .filter(firing => firing.connectionId === connection.id && Date.now() >= firing.startTime)
                   .map(firing => {
-                    const pathElement = document.querySelector(`path[d="${getConnectionPath(fromNode, toNode)}"]`) as SVGPathElement;
-                    if (!pathElement) return null;
+                    const point = getPointAlongPath(pathString, firing.progress);
                     
-                    try {
-                      const pathLength = pathElement.getTotalLength();
-                      const point = pathElement.getPointAtLength(pathLength * firing.progress);
-                      
-                      return (
-                        <circle
-                          key={firing.id}
-                          cx={point.x}
-                          cy={point.y}
-                          r={4 + firing.intensity * 3}
-                          fill={`rgba(255, 255, 255, ${0.8 + firing.intensity * 0.2})`}
-                          filter="url(#brightGlow)"
-                          className="transition-opacity duration-300"
-                        />
-                      );
-                    } catch (e) {
-                      return null;
-                    }
+                    // Calculate opacity based on progress (fade out near end)
+                    const opacity = firing.progress < 0.9 ? 
+                      0.8 + firing.intensity * 0.2 : 
+                      (1 - firing.progress) * 8; // Fade out in last 10%
+                    
+                    return (
+                      <circle
+                        key={firing.id}
+                        cx={point.x}
+                        cy={point.y}
+                        r={3 + firing.intensity * 2}
+                        fill={`rgba(255, 255, 255, ${Math.max(0, opacity)})`}
+                        filter="url(#firingGlow)"
+                        className="transition-opacity duration-300"
+                      />
+                    );
                   })}
               </g>
             );
@@ -482,6 +532,9 @@ const KnowledgeMapMindmap: React.FC = () => {
             const isHovered = hoveredNode === node.id;
             const isFiringTarget = reachedNodes.has(node.id);
             
+            // Enhanced intensity for firing targets
+            const nodeIntensity = isFiringTarget ? 1.3 : (isHovered ? 1.15 : 1);
+            
             return (
               <g 
                 key={node.id} 
@@ -490,26 +543,12 @@ const KnowledgeMapMindmap: React.FC = () => {
                 onMouseEnter={() => handleNodeHover(node)}
                 onMouseLeave={handleNodeLeave}
               >
-                {/* Node background with enhanced glow for firing targets */}
-                <circle
-                  cx={node.position.x}
-                  cy={node.position.y}
-                  r={node.size / 2}
-                  fill={isBrainCenter ? 'url(#brainGradient)' : node.color}
-                  opacity={isFiringTarget ? 1 : (isBrainCenter ? 0.9 : 0.8)}
-                  stroke={isSelected ? '#FFFFFF' : (isFiringTarget ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)')}
-                  strokeWidth={isSelected || isFiringTarget ? 3 : 1}
-                  filter={isFiringTarget ? 'url(#brightGlow)' : (isBrainCenter ? 'url(#glow)' : 'url(#neuralGlow)')}
-                  className={`transition-all duration-500 ${isBrainCenter ? 'animate-pulse' : ''}`}
-                  transform={isFiringTarget ? 'scale(1.1)' : 'scale(1)'}
-                />
-
                 {/* Enhanced glow ring for firing targets */}
                 {isFiringTarget && (
                   <circle
                     cx={node.position.x}
                     cy={node.position.y}
-                    r={node.size / 2 + 8}
+                    r={node.size / 2 + 12}
                     fill="none"
                     stroke="rgba(255, 255, 255, 0.6)"
                     strokeWidth="2"
@@ -519,6 +558,19 @@ const KnowledgeMapMindmap: React.FC = () => {
                   />
                 )}
 
+                {/* Node background */}
+                <circle
+                  cx={node.position.x}
+                  cy={node.position.y}
+                  r={(node.size / 2) * nodeIntensity}
+                  fill={isBrainCenter ? 'url(#brainGradient)' : node.color}
+                  opacity={isFiringTarget ? 1 : (isBrainCenter ? 0.9 : 0.8)}
+                  stroke={isSelected ? '#FFFFFF' : (isFiringTarget ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)')}
+                  strokeWidth={isSelected || isFiringTarget ? 3 : 1}
+                  filter={isFiringTarget ? 'url(#brightGlow)' : (isBrainCenter ? 'url(#glow)' : 'url(#neuralGlow)')}
+                  className={`transition-all duration-500 ${isBrainCenter ? 'animate-pulse' : ''}`}
+                />
+
                 {/* Node icon */}
                 <foreignObject
                   x={node.position.x - 12}
@@ -526,7 +578,7 @@ const KnowledgeMapMindmap: React.FC = () => {
                   width="24"
                   height="24"
                 >
-                  <Icon className="w-6 h-6 text-white drop-shadow-lg" />
+                  <Icon className={`w-6 h-6 text-white drop-shadow-lg ${isFiringTarget ? 'filter brightness-125' : ''}`} />
                 </foreignObject>
 
                 {/* Node label */}
@@ -536,8 +588,8 @@ const KnowledgeMapMindmap: React.FC = () => {
                   textAnchor="middle"
                   fill="white"
                   fontSize="12"
-                  fontWeight="500"
-                  className="drop-shadow-lg"
+                  fontWeight={isFiringTarget ? "600" : "500"}
+                  className="drop-shadow-lg transition-all duration-500"
                 >
                   {node.title}
                 </text>
