@@ -607,16 +607,7 @@ const KnowledgeMapMindmap: React.FC = () => {
                   </text>
                 )}
 
-                {/* Activity indicator for recent activity */}
-                {node.lastActivity && (
-                  <circle
-                    cx={node.position.x + node.size / 2 - 8}
-                    cy={node.position.y - node.size / 2 + 8}
-                    r="4"
-                    fill="#10B981"
-                    className="animate-ping"
-                  />
-                )}
+                {/* REMOVED: Activity indicator - no more annoying animations! */}
               </g>
             );
           })}
