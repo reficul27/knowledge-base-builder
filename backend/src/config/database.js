@@ -1,4 +1,4 @@
-// src/config/database.js - Korrigierte Version für Docker MongoDB
+// src/config/database.js - Fixed IPv6 connection issue
 const mongoose = require('mongoose');
 
 let isConnected = false;
@@ -10,8 +10,8 @@ const connectMongoDB = async () => {
   }
 
   try {
-    // Docker MongoDB Connection String
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://admin:password123@localhost:27017/knowledge_base?authSource=admin';
+    // Use IPv4 explicitly to avoid IPv6 connection issues
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://admin:password123@127.0.0.1:27017/knowledge_base?authSource=admin';
     
     console.log('🔄 Connecting to MongoDB...');
     console.log(`📍 URI: ${mongoUri.replace(/\/\/.*@/, '//***:***@')}`); // Hide credentials in log
@@ -20,7 +20,8 @@ const connectMongoDB = async () => {
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
-      // Explizite Auth-Optionen
+      family: 4, // Force IPv4
+      // Explicit auth options
       authSource: 'admin',
       authMechanism: 'SCRAM-SHA-1'
     };
@@ -57,6 +58,13 @@ const connectMongoDB = async () => {
       console.log('   - Docker container is running: docker ps | findstr kb-mongodb');
       console.log('   - Credentials in .env file');
       console.log('   - Database name matches docker-compose.yml');
+    }
+    
+    if (error.message.includes('ECONNREFUSED')) {
+      console.log('💡 Connection refused. Try:');
+      console.log('   - docker-compose up -d');
+      console.log('   - Use 127.0.0.1 instead of localhost in .env');
+      console.log('   - Check if port 27017 is blocked');
     }
     
     isConnected = false;
