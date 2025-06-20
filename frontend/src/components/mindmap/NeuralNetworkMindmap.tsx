@@ -23,20 +23,23 @@ interface NeuralConnection {
   id: string;
   from: string;
   to: string;
-  strength: number; // 0-1, affects line thickness and activity
-  activity: number; // 0-1, current neural activity level
+  strength: number; // 0-1, affects line thickness
+  activity: number; // 0-1, recent activity level
 }
 
-interface NeuralFiring {
+interface HoverFiring {
   id: string;
   connectionId: string;
   progress: number; // 0-1 along the connection
   intensity: number;
+  targetReached: boolean;
 }
 
-const NeuralNetworkMindmap: React.FC = () => {
+const KnowledgeMapMindmap: React.FC = () => {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
-  const [neuralFirings, setNeuralFirings] = useState<NeuralFiring[]>([]);
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [hoverFirings, setHoverFirings] = useState<HoverFiring[]>([]);
+  const [reachedNodes, setReachedNodes] = useState<Set<string>>(new Set());
   const [mounted, setMounted] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
   const animationRef = useRef<number>();
@@ -45,12 +48,12 @@ const NeuralNetworkMindmap: React.FC = () => {
     setMounted(true);
   }, []);
 
-  // Neural Network Data - "My Brain" Archive
+  // Knowledge Map Data - Complete Learning Archive
   const nodes: NeuralNode[] = [
     // Central Brain Node
     {
       id: 'my-brain',
-      title: 'My Brain',
+      title: 'My Knowledge',
       type: 'brain',
       position: { x: 400, y: 300 }, // Slightly off-center
       size: 100,
@@ -270,51 +273,76 @@ const NeuralNetworkMindmap: React.FC = () => {
     return icons[nodeId as keyof typeof icons] || BookOpen;
   };
 
+  // Handle node hover
+  const handleNodeHover = (node: NeuralNode) => {
+    setHoveredNode(node.id);
+    setReachedNodes(new Set());
+    
+    // Find all connections pointing TO this node
+    const incomingConnections = connections.filter(conn => conn.to === node.id);
+    
+    // Start firing animations from connected nodes
+    const newFirings: HoverFiring[] = incomingConnections.map(conn => ({
+      id: `firing-${conn.id}-${Date.now()}`,
+      connectionId: conn.id,
+      progress: 0,
+      intensity: conn.activity,
+      targetReached: false
+    }));
+    
+    setHoverFirings(newFirings);
+  };
+
+  // Handle node leave
+  const handleNodeLeave = () => {
+    setHoveredNode(null);
+    setHoverFirings([]);
+    setReachedNodes(new Set());
+  };
+
   // Handle node click
   const handleNodeClick = (node: NeuralNode) => {
     setSelectedNode(node.id);
   };
 
-  // Animate neural firings
+  // Animate hover firings - slower and more elegant
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || hoverFirings.length === 0) return;
 
-    const animateNeuralFirings = () => {
-      setNeuralFirings(prev => {
-        // Update existing firings
-        const updated = prev.map(firing => ({
-          ...firing,
-          progress: (firing.progress + 0.02) % 1
-        })).filter(firing => firing.progress < 0.98);
-
-        // Randomly add new firings
-        if (Math.random() < 0.1) {
-          const activeConnections = connections.filter(c => c.activity > 0.3);
-          if (activeConnections.length > 0) {
-            const connection = activeConnections[Math.floor(Math.random() * activeConnections.length)];
-            updated.push({
-              id: `firing-${Date.now()}`,
-              connectionId: connection.id,
-              progress: 0,
-              intensity: connection.activity
-            });
+    const animateHoverFirings = () => {
+      setHoverFirings(prev => {
+        const updated = prev.map(firing => {
+          const newProgress = firing.progress + 0.008; // Much slower: 0.008 instead of 0.02
+          
+          // Check if firing reached target (95% to account for curve endpoints)
+          if (newProgress >= 0.95 && !firing.targetReached) {
+            const connection = connections.find(c => c.id === firing.connectionId);
+            if (connection && hoveredNode) {
+              setReachedNodes(prev => new Set([...prev, connection.to]));
+            }
+            return { ...firing, progress: newProgress, targetReached: true };
           }
-        }
+          
+          return { ...firing, progress: newProgress };
+        });
 
-        return updated;
+        // Remove completed firings after a short delay
+        return updated.filter(firing => firing.progress < 1.1);
       });
 
-      animationRef.current = requestAnimationFrame(animateNeuralFirings);
+      if (hoveredNode && hoverFirings.length > 0) {
+        animationRef.current = requestAnimationFrame(animateHoverFirings);
+      }
     };
 
-    animationRef.current = requestAnimationFrame(animateNeuralFirings);
+    animationRef.current = requestAnimationFrame(animateHoverFirings);
 
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [mounted]);
+  }, [mounted, hoverFirings.length, hoveredNode]);
 
   // Calculate total brain stats
   const totalXP = nodes.reduce((sum, node) => sum + node.xp, 0);
@@ -338,7 +366,7 @@ const NeuralNetworkMindmap: React.FC = () => {
             <div className="flex items-center space-x-4 text-white text-sm">
               <span className="flex items-center">
                 <Brain className="w-4 h-4 mr-1" />
-                My Brain Archive
+                Knowledge Map
               </span>
               <span className="text-white/70">|</span>
               <span>{completedTopics}/{totalTopics} Topics</span>
@@ -356,7 +384,7 @@ const NeuralNetworkMindmap: React.FC = () => {
         </div>
       </div>
 
-      {/* Neural Network Canvas */}
+      {/* Knowledge Map Canvas */}
       <div className="flex-1 relative overflow-hidden pt-20">
         <svg 
           ref={svgRef}
@@ -386,6 +414,14 @@ const NeuralNetworkMindmap: React.FC = () => {
                 <feMergeNode in="SourceGraphic"/>
               </feMerge>
             </filter>
+
+            <filter id="brightGlow">
+              <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+              <feMerge> 
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
           </defs>
 
           {/* Neural Connections (Synapses) */}
@@ -394,38 +430,45 @@ const NeuralNetworkMindmap: React.FC = () => {
             const toNode = getNode(connection.to);
             if (!fromNode || !toNode) return null;
 
+            const isActive = hoveredNode === connection.to;
+
             return (
               <g key={connection.id}>
                 {/* Main synaptic path */}
                 <path
                   d={getConnectionPath(fromNode, toNode)}
-                  stroke={`rgba(139, 92, 246, ${0.3 + connection.activity * 0.4})`}
-                  strokeWidth={2 + connection.strength * 3}
+                  stroke={isActive ? `rgba(139, 92, 246, 0.8)` : `rgba(139, 92, 246, ${0.3 + connection.activity * 0.2})`}
+                  strokeWidth={isActive ? (3 + connection.strength * 4) : (2 + connection.strength * 3)}
                   fill="none"
-                  filter="url(#neuralGlow)"
-                  className="transition-all duration-1000"
+                  filter={isActive ? "url(#brightGlow)" : "url(#neuralGlow)"}
+                  className="transition-all duration-500"
                 />
                 
-                {/* Neural firing animation */}
-                {neuralFirings
+                {/* Hover-based neural firing animation */}
+                {hoverFirings
                   .filter(firing => firing.connectionId === connection.id)
                   .map(firing => {
                     const pathElement = document.querySelector(`path[d="${getConnectionPath(fromNode, toNode)}"]`) as SVGPathElement;
                     if (!pathElement) return null;
                     
-                    const pathLength = pathElement.getTotalLength();
-                    const point = pathElement.getPointAtLength(pathLength * firing.progress);
-                    
-                    return (
-                      <circle
-                        key={firing.id}
-                        cx={point.x}
-                        cy={point.y}
-                        r={3 + firing.intensity * 2}
-                        fill={`rgba(255, 255, 255, ${firing.intensity})`}
-                        filter="url(#glow)"
-                      />
-                    );
+                    try {
+                      const pathLength = pathElement.getTotalLength();
+                      const point = pathElement.getPointAtLength(pathLength * firing.progress);
+                      
+                      return (
+                        <circle
+                          key={firing.id}
+                          cx={point.x}
+                          cy={point.y}
+                          r={4 + firing.intensity * 3}
+                          fill={`rgba(255, 255, 255, ${0.8 + firing.intensity * 0.2})`}
+                          filter="url(#brightGlow)"
+                          className="transition-opacity duration-300"
+                        />
+                      );
+                    } catch (e) {
+                      return null;
+                    }
                   })}
               </g>
             );
@@ -436,21 +479,45 @@ const NeuralNetworkMindmap: React.FC = () => {
             const Icon = getCategoryIcon(node.id);
             const isSelected = selectedNode === node.id;
             const isBrainCenter = node.type === 'brain';
+            const isHovered = hoveredNode === node.id;
+            const isFiringTarget = reachedNodes.has(node.id);
             
             return (
-              <g key={node.id} className="cursor-pointer" onClick={() => handleNodeClick(node)}>
-                {/* Node background with neural texture */}
+              <g 
+                key={node.id} 
+                className="cursor-pointer" 
+                onClick={() => handleNodeClick(node)}
+                onMouseEnter={() => handleNodeHover(node)}
+                onMouseLeave={handleNodeLeave}
+              >
+                {/* Node background with enhanced glow for firing targets */}
                 <circle
                   cx={node.position.x}
                   cy={node.position.y}
                   r={node.size / 2}
                   fill={isBrainCenter ? 'url(#brainGradient)' : node.color}
-                  opacity={isBrainCenter ? 0.9 : 0.8}
-                  stroke={isSelected ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)'}
-                  strokeWidth={isSelected ? 3 : 1}
-                  filter={isBrainCenter ? 'url(#glow)' : 'url(#neuralGlow)'}
-                  className={`transition-all duration-300 ${isBrainCenter ? 'animate-pulse' : ''}`}
+                  opacity={isFiringTarget ? 1 : (isBrainCenter ? 0.9 : 0.8)}
+                  stroke={isSelected ? '#FFFFFF' : (isFiringTarget ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)')}
+                  strokeWidth={isSelected || isFiringTarget ? 3 : 1}
+                  filter={isFiringTarget ? 'url(#brightGlow)' : (isBrainCenter ? 'url(#glow)' : 'url(#neuralGlow)')}
+                  className={`transition-all duration-500 ${isBrainCenter ? 'animate-pulse' : ''}`}
+                  transform={isFiringTarget ? 'scale(1.1)' : 'scale(1)'}
                 />
+
+                {/* Enhanced glow ring for firing targets */}
+                {isFiringTarget && (
+                  <circle
+                    cx={node.position.x}
+                    cy={node.position.y}
+                    r={node.size / 2 + 8}
+                    fill="none"
+                    stroke="rgba(255, 255, 255, 0.6)"
+                    strokeWidth="2"
+                    opacity="0.8"
+                    filter="url(#brightGlow)"
+                    className="animate-pulse"
+                  />
+                )}
 
                 {/* Node icon */}
                 <foreignObject
@@ -582,4 +649,4 @@ const NeuralNetworkMindmap: React.FC = () => {
   );
 };
 
-export default NeuralNetworkMindmap;
+export default KnowledgeMapMindmap;
