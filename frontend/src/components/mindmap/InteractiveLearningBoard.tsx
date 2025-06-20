@@ -37,7 +37,13 @@ const InteractiveLearningBoard: React.FC = () => {
   const [playerPosition, setPlayerPosition] = useState<string>('html-basics');
   const [showAchievements, setShowAchievements] = useState(false);
   const [animatingPath, setAnimatingPath] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
+
+  // Fix hydration mismatch - only show animated stars after mounting
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Demo Learning Path Data with Board Game Layout
   const topics: LearningTopic[] = [
@@ -268,27 +274,48 @@ const InteractiveLearningBoard: React.FC = () => {
     console.log(`Starting learning session for: ${topicId}`);
   };
 
+  // Generate static star positions to avoid hydration mismatch
+  const starPositions = [
+    { left: 15, top: 20, delay: 0.5, duration: 3 },
+    { left: 85, top: 10, delay: 1.2, duration: 4 },
+    { left: 25, top: 70, delay: 0.8, duration: 3.5 },
+    { left: 75, top: 80, delay: 1.5, duration: 4.2 },
+    { left: 45, top: 30, delay: 0.3, duration: 3.8 },
+    { left: 90, top: 60, delay: 1.8, duration: 3.2 },
+    { left: 10, top: 90, delay: 0.7, duration: 4.5 },
+    { left: 65, top: 15, delay: 1.1, duration: 3.6 },
+    { left: 35, top: 85, delay: 0.4, duration: 4.1 },
+    { left: 80, top: 40, delay: 1.6, duration: 3.9 },
+    { left: 20, top: 50, delay: 0.9, duration: 3.3 },
+    { left: 55, top: 25, delay: 1.3, duration: 4.3 },
+    { left: 95, top: 75, delay: 0.6, duration: 3.7 },
+    { left: 5, top: 35, delay: 1.4, duration: 4.0 },
+    { left: 70, top: 65, delay: 0.2, duration: 3.4 }
+  ];
+
   return (
     <div className="w-full h-full bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -inset-10 opacity-20">
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute animate-ping"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 2}s`,
-                animationDuration: `${3 + Math.random() * 2}s`
-              }}
-            >
-              ⭐
-            </div>
-          ))}
+      {/* Animated background elements - only show after mount */}
+      {mounted && (
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -inset-10 opacity-20">
+            {starPositions.map((star, i) => (
+              <div
+                key={i}
+                className="absolute animate-ping"
+                style={{
+                  left: `${star.left}%`,
+                  top: `${star.top}%`,
+                  animationDelay: `${star.delay}s`,
+                  animationDuration: `${star.duration}s`
+                }}
+              >
+                ⭐
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Header Stats */}
       <div className="absolute top-6 left-6 right-6 z-10">
