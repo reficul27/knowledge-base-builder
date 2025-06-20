@@ -218,7 +218,7 @@ export default function Dashboard() {
                 className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-6 py-3 text-white hover:bg-white/20 transition-all"
               >
                 <Brain className="h-4 w-4" />
-                <span>My Brain Archive</span>
+                <span>Knowledge Map</span>
               </Link>
               <button className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-6 py-3 text-white hover:bg-white/20 transition-all">
                 <Target className="h-4 w-4" />
@@ -329,7 +329,7 @@ export default function Dashboard() {
                 <p className="text-purple-100">Interactive game-like learning experience with achievements and progress tracking</p>
               </Link>
 
-              {/* My Brain Archive Card */}
+              {/* Knowledge Map Card */}
               <Link
                 href="/my-brain"
                 className="bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl p-6 text-white hover:shadow-xl transition-all duration-300 group"
@@ -338,7 +338,7 @@ export default function Dashboard() {
                   <Brain className="w-8 h-8" />
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">My Brain Archive</h3>
+                <h3 className="text-xl font-bold mb-2">Knowledge Map</h3>
                 <p className="text-indigo-100">Neural network visualization of your complete knowledge base and learning connections</p>
               </Link>
 
@@ -429,7 +429,7 @@ export default function Dashboard() {
                   className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md border border-white/20 text-white px-8 py-4 rounded-2xl font-semibold hover:bg-white/20 transition-all"
                 >
                   <Brain className="h-5 w-5" />
-                  <span>Explore My Brain</span>
+                  <span>Explore Knowledge Map</span>
                   <ArrowRight className="h-5 w-5" />
                 </Link>
               </div>
