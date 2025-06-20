@@ -1,7 +1,7 @@
 // src/app/page.tsx - Enhanced Dashboard
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, Sparkles, BookOpen, Target, Trophy, ArrowRight, Play, Star, Clock, Zap } from 'lucide-react'
 import Link from 'next/link'
 
@@ -18,6 +18,12 @@ interface QuickTopic {
 export default function Dashboard() {
   const [searchTopic, setSearchTopic] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  // Fix hydration mismatch - only show animated stars after mounting
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Demo user stats
   const userStats = {
@@ -81,27 +87,48 @@ export default function Dashboard() {
     return badges[difficulty as keyof typeof badges]
   }
 
+  // Static star positions to avoid hydration mismatch
+  const starPositions = [
+    { left: 10, top: 15, delay: 0.5, duration: 3 },
+    { left: 85, top: 25, delay: 1.2, duration: 4 },
+    { left: 25, top: 60, delay: 0.8, duration: 3.5 },
+    { left: 75, top: 80, delay: 1.5, duration: 4.2 },
+    { left: 45, top: 35, delay: 0.3, duration: 3.8 },
+    { left: 90, top: 55, delay: 1.8, duration: 3.2 },
+    { left: 15, top: 85, delay: 0.7, duration: 4.5 },
+    { left: 65, top: 20, delay: 1.1, duration: 3.6 },
+    { left: 35, top: 75, delay: 0.4, duration: 4.1 },
+    { left: 80, top: 40, delay: 1.6, duration: 3.9 },
+    { left: 20, top: 50, delay: 0.9, duration: 3.3 },
+    { left: 55, top: 30, delay: 1.3, duration: 4.3 },
+    { left: 95, top: 70, delay: 0.6, duration: 3.7 },
+    { left: 5, top: 45, delay: 1.4, duration: 4.0 },
+    { left: 70, top: 65, delay: 0.2, duration: 3.4 }
+  ]
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
-        {/* Animated background */}
-        <div className="absolute inset-0 opacity-20">
-          {[...Array(15)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute animate-pulse"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 2}s`,
-                animationDuration: `${2 + Math.random() * 2}s`
-              }}
-            >
-              ⭐
-            </div>
-          ))}
-        </div>
+        {/* Animated background - only show after mount */}
+        {mounted && (
+          <div className="absolute inset-0 opacity-20">
+            {starPositions.map((star, i) => (
+              <div
+                key={i}
+                className="absolute animate-pulse"
+                style={{
+                  left: `${star.left}%`,
+                  top: `${star.top}%`,
+                  animationDelay: `${star.delay}s`,
+                  animationDuration: `${star.duration}s`
+                }}
+              >
+                ⭐
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="relative px-6 py-16 sm:py-24 lg:px-8">
           <div className="mx-auto max-w-4xl text-center">
